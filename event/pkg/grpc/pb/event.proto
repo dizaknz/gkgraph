@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+
+message AttrValue {
+    string attr = 1;
+    string val = 2;
+    enum AttrType {
+        STRING = 0;
+        INT = 1;
+        FLOAT = 2;
+        OBJECT = 3;
+    }
+    AttrType typ = 3;
+}
+
+message EventLink {
+    string eventID = 1;
+    string eventType = 2;
+    string linkType = 3;
+    repeated AttrValue attrs = 4;
+}
+
+message EventMessage {
+    string id = 1;
+    string typ = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    repeated AttrValue attrs = 4;
+    repeated EventLink links = 5;
+}
+
+service Event {
+    rpc Add (AddRequest) returns (AddReply);
+}
+
+message AddRequest {
+    EventMessage event = 1;
+}
+
+message AddReply {
+    bool success = 1;
+    string message = 2;
+}
+
