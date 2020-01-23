@@ -26,6 +26,8 @@ import (
 	opentracinggo "github.com/opentracing/opentracing-go"
 	prometheus1 "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	grpc1 "google.golang.org/grpc"
 
 	grpc2 "github.com/go-kit/kit/transport/grpc"
@@ -33,26 +35,42 @@ import (
 )
 
 func main() {
-	var tracer opentracinggo.Tracer
-	var logger log.Logger
+	viper.SetEnvPrefix("gkevent")
+	fs := flag.NewFlagSet("gkevent", flag.ExitOnError)
+	fs.String("debug_url", ":8080", "Debug and metrics URL")
+	fs.String("http_url", ":8081", "HTTP URL")
+	fs.String("grpc_url", ":8082", "gRPC URL")
+	fs.String("neo4j", "bolt://username:password@localhost:7687", "Neo4j bolt")
+	for _, env := range []string{
+		"debug_url",
+		"http_url",
+		"grpc_url",
+		"neo4j",
+	} {
+		viper.BindEnv(env)
+	}
 
-	var fs = flag.NewFlagSet("event", flag.ExitOnError)
-	var debugAddr = fs.String("debug-addr", ":8080", "Debug and metrics listen address")
-	var httpAddr = fs.String("http-addr", ":8081", "HTTP listen address")
-	var grpcAddr = fs.String("grpc-addr", ":8082", "gRPC listen address")
-	var neo4j = fs.String("neo4j", "bolt://username:password@localhost:7687", "Neo4j bolt")
+	pflag.CommandLine.AddGoFlagSet(fs)
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
 
-	fs.Parse(os.Args[1:])
+	debugURL := viper.GetString("debug_url")
+	httpURL := viper.GetString("http_url")
+	grpcURL := viper.GetString("grpc_url")
+	neo4j := viper.GetString("neo4j")
 
-	logger = log.NewLogfmtLogger(os.Stderr)
+	banner()
+
+	logger := log.NewLogfmtLogger(os.Stderr)
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
-	tracer = opentracinggo.GlobalTracer()
+	tracer := opentracinggo.GlobalTracer()
 
-	db, err := createConnection(*neo4j)
+	level.Debug(logger).Log("msg", "Connecting to Neo4j")
+	db, err := connect(neo4j)
 	if err != nil {
-		level.Error(logger).Log("Neo4j", "Failed to connect", "error", err)
+		level.Error(logger).Log("msg", "Failed to connect to Neo4j", "error", err)
 		return
 	}
 	defer db.Close()
@@ -62,14 +80,13 @@ func main() {
 		getServiceMiddleware(logger),
 	)
 	eps := endpoint.New(svc, getEndpointMiddleware(logger))
-	g := createService(*httpAddr, *grpcAddr, eps, logger, tracer)
-	initMetricsEndpoint(*debugAddr, g, logger)
+	g := createService(httpURL, grpcURL, eps, logger, tracer)
+	initMetricsEndpoint(debugURL, g, logger)
 	initCancelInterrupt(g)
 	logger.Log("exit", g.Run())
-
 }
 
-func createConnection(uri string) (bolt.Conn, error) {
+func connect(uri string) (bolt.Conn, error) {
 	return bolt.NewDriver().OpenNeo(uri)
 }
 
@@ -171,14 +188,14 @@ func initGRPCHandler(
 }
 
 func createService(
-	httpAddr, grpcAddr string,
+	httpURL, grpcURL string,
 	endpoints endpoint.Endpoints,
 	logger log.Logger,
 	tracer opentracinggo.Tracer,
 ) (g *group.Group) {
 	g = &group.Group{}
-	initHttpHandler(httpAddr, endpoints, g, logger, tracer)
-	initGRPCHandler(grpcAddr, endpoints, g, logger, tracer)
+	initHttpHandler(httpURL, endpoints, g, logger, tracer)
+	initGRPCHandler(grpcURL, endpoints, g, logger, tracer)
 	return g
 }
 
@@ -222,4 +239,21 @@ func addDefaultEndpointMiddleware(
 
 func addDefaultServiceMiddleware(logger log.Logger, mw []service.Middleware) []service.Middleware {
 	return append(mw, service.LoggingMiddleware(logger))
+}
+
+func banner() {
+	fmt.Printf(`
+      ___           ___           ___           ___           ___           ___           ___           ___     
+     /\  \         /\__\         /\  \         /\__\         /\  \         /\__\         /\  \         /\  \    
+    /::\  \       /:/  /        /::\  \       /:/  /        /::\  \       /::|  |        \:\  \       /::\  \   
+   /:/\:\  \     /:/__/        /:/\:\  \     /:/  /        /:/\:\  \     /:|:|  |         \:\  \     /:/\ \  \  
+  /:/  \:\  \   /::\__\____   /::\~\:\  \   /:/__/  ___   /::\~\:\  \   /:/|:|  |__       /::\  \   _\:\~\ \  \ 
+ /:/__/_\:\__\ /:/\:::::\__\ /:/\:\ \:\__\  |:|  | /\__\ /:/\:\ \:\__\ /:/ |:| /\__\     /:/\:\__\ /\ \:\ \ \__\
+ \:\  /\ \/__/ \/_|:|~~|~    \:\~\:\ \/__/  |:|  |/:/  / \:\~\:\ \/__/ \/__|:|/:/  /    /:/  \/__/ \:\ \:\ \/__/
+  \:\ \:\__\      |:|  |      \:\ \:\__\    |:|__/:/  /   \:\ \:\__\       |:/:/  /    /:/  /       \:\ \:\__\  
+   \:\/:/  /      |:|  |       \:\ \/__/     \::::/__/     \:\ \/__/       |::/  /     \/__/         \:\/:/  /  
+    \::/  /       |:|  |        \:\__\        ~~~~          \:\__\         /:/  /                     \::/  /   
+     \/__/         \|__|         \/__/                       \/__/         \/__/                       \/__/    
+
+	`)
 }
