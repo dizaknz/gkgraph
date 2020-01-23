@@ -15,18 +15,18 @@ cd event/cmd/event
 go build
 ```
 
-`./event --help`
-
 ```
 Usage of event:
-  -debug-addr string
-        Debug and metrics listen address (default ":8080")
-  -grpc-addr string
-        gRPC listen address (default ":8082")
-  -http-addr string
-        HTTP listen address (default ":8081")
-  -neo4j string
-        Neo4j bolt (default "bolt://username:password@localhost:7687")
+      --debug_url string   Debug and metrics URL (default ":8080")
+      --grpc_url string    gRPC URL (default ":8082")
+      --http_url string    HTTP URL (default ":8081")
+      --neo4j string       Neo4j bolt (default "bolt://username:password@localhost:7687")
+```
+
+or use env
+
+```
+GKEVENT_NEO4J=bolt:/admin:admin@moo:7687 GKEVENT_DEBUG_URL=:8888 ./event
 ```
 
 ## client
