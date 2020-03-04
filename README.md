@@ -10,8 +10,6 @@ Demo event ingestion service using
 
 ```
 cd event
-dep ensure -v
-cd event/cmd/event
 go build
 ```
 
