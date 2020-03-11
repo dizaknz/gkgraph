@@ -1,10 +1,31 @@
-version: '3.4'
+version: "3.4"
 services:
   neo4j:
-    image: 'neo4j:4'
+    image: neo4j:4.0
+    expose:
+      - 7687
     ports:
-      - '7474:7474'
-      - '7687:7687'
+      - "7474:7474"
+      - "7687:7687"
     environment:
-      - NEO4J_AUTH=none
+      - NEO4J_AUTH=neo4j/neo
       - SECURE_FILE_PERMISSIONS=yes
+    hostname: "neo4j"
+  gkevent:
+    image: gkevent
+    depends_on:
+      - neo4j
+    build:
+      context: ./event
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      GKEVENT_NEO4J: "bolt://neo4j:neo@neo4j:7687"
+      GKEVENT_DEBUG_URL: "gkevent:9080"
+      GKEVENT_GRPC_URL: "gkevent:9081"
+      GKEVENT_HTTP_URL: "gkevent:9082"
+    ports:
+      - "9080:9080"
+      - "9081:9081"
+      - "9082:9082"
+
