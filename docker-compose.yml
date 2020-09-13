@@ -1,7 +1,7 @@
 version: "3.4"
 services:
   neo4j:
-    image: neo4j:4.0
+    image: neo4j:3.5
     expose:
       - 7687
     ports:
