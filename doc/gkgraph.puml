@@ -1,0 +1,275 @@
+@startuml
+namespace datastore {
+    class EventDatastore << (S,Aquamarine) >> {
+        - db golang-neo4j-bolt-driver.Conn
+        - logger log.Logger
+
+        + Add(ev *types.Event) error
+
+    }
+}
+
+
+
+namespace endpoint {
+    class AddRequest << (S,Aquamarine) >> {
+        + Event *types.Event
+
+    }
+    class AddResponse << (S,Aquamarine) >> {
+        + Error error
+
+        + Failed() error
+
+    }
+    class Endpoints << (S,Aquamarine) >> {
+        + AddEndpoint endpoint.Endpoint
+
+        + Add(ctx context.Context, event *types.Event) error
+
+    }
+    interface Failure  {
+        + Failed() error
+
+    }
+}
+
+"endpoint.Failure" <|-- "implements""endpoint.AddResponse"
+
+"endpoint.AddRequest""uses" o-- "types.Event"
+"endpoint.Endpoints""uses" o-- "endpoint.Endpoint"
+
+namespace grpc {
+    class grpcServer << (S,Aquamarine) >> {
+        - add grpc.Handler
+
+        + Add(ctx context.Context, req *pb.AddRequest) (*pb.AddReply, error)
+
+    }
+}
+
+
+
+namespace http {
+    class errorWrapper << (S,Aquamarine) >> {
+        + Error string
+
+    }
+}
+
+
+
+namespace pb {
+    class AddReply << (S,Aquamarine) >> {
+        + Success bool
+        + Message string
+        + XXX_NoUnkeyedLiteral <font color=blue>struct</font>{}
+        + XXX_unrecognized []byte
+        + XXX_sizecache int32
+
+        + Reset() 
+        + String() string
+        + ProtoMessage() 
+        + Descriptor() ([]byte, []int)
+        + XXX_Unmarshal(b []byte) error
+        + XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
+        + XXX_Merge(src proto.Message) 
+        + XXX_Size() int
+        + XXX_DiscardUnknown() 
+        + GetSuccess() bool
+        + GetMessage() string
+
+    }
+    class AddRequest << (S,Aquamarine) >> {
+        + Event *EventMessage
+        + XXX_NoUnkeyedLiteral <font color=blue>struct</font>{}
+        + XXX_unrecognized []byte
+        + XXX_sizecache int32
+
+        + Reset() 
+        + String() string
+        + ProtoMessage() 
+        + Descriptor() ([]byte, []int)
+        + XXX_Unmarshal(b []byte) error
+        + XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
+        + XXX_Merge(src proto.Message) 
+        + XXX_Size() int
+        + XXX_DiscardUnknown() 
+        + GetEvent() *EventMessage
+
+    }
+    class AttrValue << (S,Aquamarine) >> {
+        + Attr string
+        + Val string
+        + Typ AttrValue_AttrType
+        + XXX_NoUnkeyedLiteral <font color=blue>struct</font>{}
+        + XXX_unrecognized []byte
+        + XXX_sizecache int32
+
+        + Reset() 
+        + String() string
+        + ProtoMessage() 
+        + Descriptor() ([]byte, []int)
+        + XXX_Unmarshal(b []byte) error
+        + XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
+        + XXX_Merge(src proto.Message) 
+        + XXX_Size() int
+        + XXX_DiscardUnknown() 
+        + GetAttr() string
+        + GetVal() string
+        + GetTyp() AttrValue_AttrType
+
+    }
+    class AttrValue_AttrType << (S,Aquamarine) >> {
+        + String() string
+        + EnumDescriptor() ([]byte, []int)
+
+    }
+    interface EventClient  {
+        + Add(ctx "context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error)
+
+    }
+    class EventLink << (S,Aquamarine) >> {
+        + EventID string
+        + EventType string
+        + LinkType string
+        + Attrs []*AttrValue
+        + XXX_NoUnkeyedLiteral <font color=blue>struct</font>{}
+        + XXX_unrecognized []byte
+        + XXX_sizecache int32
+
+        + Reset() 
+        + String() string
+        + ProtoMessage() 
+        + Descriptor() ([]byte, []int)
+        + XXX_Unmarshal(b []byte) error
+        + XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
+        + XXX_Merge(src proto.Message) 
+        + XXX_Size() int
+        + XXX_DiscardUnknown() 
+        + GetEventID() string
+        + GetEventType() string
+        + GetLinkType() string
+        + GetAttrs() []*AttrValue
+
+    }
+    class EventMessage << (S,Aquamarine) >> {
+        + Id string
+        + Typ string
+        + Timestamp *timestamp.Timestamp
+        + Attrs []*AttrValue
+        + Links []*EventLink
+        + XXX_NoUnkeyedLiteral <font color=blue>struct</font>{}
+        + XXX_unrecognized []byte
+        + XXX_sizecache int32
+
+        + Reset() 
+        + String() string
+        + ProtoMessage() 
+        + Descriptor() ([]byte, []int)
+        + XXX_Unmarshal(b []byte) error
+        + XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
+        + XXX_Merge(src proto.Message) 
+        + XXX_Size() int
+        + XXX_DiscardUnknown() 
+        + GetId() string
+        + GetTyp() string
+        + GetTimestamp() *timestamp.Timestamp
+        + GetAttrs() []*AttrValue
+        + GetLinks() []*EventLink
+
+    }
+    interface EventServer  {
+        + Add( "context.Context,  *AddRequest) (*AddReply, error)
+
+    }
+    class UnimplementedEventServer << (S,Aquamarine) >> {
+        + Add(ctx "context.Context, req *AddRequest) (*AddReply, error)
+
+    }
+    class eventClient << (S,Aquamarine) >> {
+        - cc *grpc.ClientConn
+
+        + Add(ctx "context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error)
+
+    }
+    class pb.AttrValue_AttrType << (T, #FF7700) >>  {
+    }
+}
+
+"pb.EventServer" <|-- "implements""pb.UnimplementedEventServer"
+"pb.EventClient" <|-- "implements""pb.eventClient"
+
+"pb.AddRequest""uses" o-- "pb.EventMessage"
+"pb.AttrValue""uses" o-- "pb.AttrValue_AttrType"
+"pb.EventLink""uses" o-- "pb.AttrValue"
+"pb.EventMessage""uses" o-- "pb.AttrValue"
+"pb.EventMessage""uses" o-- "pb.EventLink"
+"pb.EventMessage""uses" o-- "timestamp.Timestamp"
+
+namespace service {
+    interface EventService  {
+        + Add(ctx "context.Context, event *types.Event) error
+
+    }
+    class eventService << (S,Aquamarine) >> {
+        - ds *datastore.EventDatastore
+
+        + Add(ctx "context.Context, event *types.Event) error
+
+    }
+    class loggingMiddleware << (S,Aquamarine) >> {
+        - logger log.Logger
+        - next EventService
+
+        + Add(ctx "context.Context, event *types.Event) error
+
+    }
+    class service.Middleware << (T, #FF7700) >>  {
+    }
+}
+
+"service.EventService" <|-- "implements""service.eventService"
+"service.EventService" <|-- "implements""service.loggingMiddleware"
+
+
+namespace types {
+    class Attribute << (S,Aquamarine) >> {
+        + Name string
+        + Value <font color=blue>interface</font>{}
+
+    }
+    class Event << (S,Aquamarine) >> {
+        + ID string
+        + Type string
+        + Timestamp time.Time
+        + Attributes []*Attribute
+        + Links []*EventLink
+
+    }
+    class EventLink << (S,Aquamarine) >> {
+        + EventID string
+        + EventType string
+        + LinkType LinkType
+        + Attributes []*Attribute
+
+    }
+    class LinkType << (S,Aquamarine) >> {
+        + String() string
+
+    }
+    class types.LinkType << (T, #FF7700) >>  {
+    }
+}
+
+
+"types.Event""uses" o-- "time.Time"
+"types.Event""uses" o-- "types.Attribute"
+"types.Event""uses" o-- "types.EventLink"
+"types.EventLink""uses" o-- "types.Attribute"
+"types.EventLink""uses" o-- "types.LinkType"
+
+"__builtin__.int32" #.. "alias of""pb.AttrValue_AttrType"
+"__builtin__.string" #.. "alias of""types.LinkType"
+"service.<font color=blue>func</font>(EventService) EventService" #.. "alias of""service.Middleware"
+@enduml
