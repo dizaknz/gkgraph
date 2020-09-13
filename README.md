@@ -10,8 +10,6 @@ Demo event ingestion service using
 
 ```
 cd event
-dep ensure -v
-cd event/cmd/event
 go build
 ```
 
@@ -95,6 +93,13 @@ cd cmd/event/
 
 See the event [proto](event/pkg/grpc/pb/event.proto) for the schema definition.
 
+## UML
 
+![](./doc/gkgraph.png)
+
+Genarated with `./doc/doc.sh`
+
+* [goplantuml](https://github.com/jfeliu007/goplantuml)
+* [plantuml](https://github.com/plantuml)
 
 
